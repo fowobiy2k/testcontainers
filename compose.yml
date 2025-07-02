@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle-db
+    ports:
+      - 1521:1521
+    environment:
+      ORACLE_PASSWORD: myoraclepwd
+      APP_USER: springuser
+      APP_USER_PASSWORD: springpass
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "springuser/springpass@//localhost:1521/XEPDB1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  springboot:
+    build: .
+    container_name: spring-app
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle:1521/XEPDB1
+      SPRING_DATASOURCE_USERNAME: springuser
+      SPRING_DATASOURCE_PASSWORD: springpass
+    ports:
+      - 8080:8080
+
+volumes:
+  oracle-data:
